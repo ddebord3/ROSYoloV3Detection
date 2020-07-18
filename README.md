@@ -15,10 +15,10 @@ The code is broken down into four files:
 4. object_tracker.py: This class tracks previously detected objects and counts how many individual objects have been detected so far. 
 
 Dependencies:
-ROS (Tested on Melodic)
-numpy (1.16)
-OpenCV (Tested on version 4.2)
-cv_bridge (Tested on 1.13)
-roslib (1.14)
+-ROS (Tested on Melodic)
+-numpy (1.16)
+-OpenCV (Tested on version 4.2)
+-cv_bridge (Tested on 1.13)
+-roslib (1.14)
 
 
