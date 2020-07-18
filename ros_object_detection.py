@@ -42,8 +42,8 @@ parser.add_argument('--frames_before_erasure', '-fbe', default=30, type=int, nar
 
 args = parser.parse_args()
 # Initialize the parameters
-confThreshold = args.confidence #Confidence threshold
-nmsThreshold = args.nms #Non-maximum suppression threshold
+confidenceThreshold = args.confidence 
+nmsThreshold = args.nms 
 
 inputHeight = args.input_size
 inputWidth = inputHeight
@@ -65,11 +65,11 @@ with open(classesFile, 'rt') as file:
     # split based on newline delimiter, strip any extra characters
     classes = file.read().rstrip('\n').split('\n')
 
-modelConfiguration = args.config
+modelConfig = args.config
 modelWeights = args.weights
 
 # create network according to whatever demands your system may have
-net = cv.dnn.readNetFromDarknet(modelConfiguration, modelWeights)
+net = cv.dnn.readNetFromDarknet(modelConfig, modelWeights)
 net.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
 net.setPreferableTarget(cv.dnn.DNN_TARGET_CPU)
 
@@ -140,7 +140,7 @@ class ObjectRecog(object):
     @conf is the confidence threshold
     @(x, y) is the top right corner of the rectangle
     @width and height are the width and heith of the image"""
-    def drawPrediction(self, classID, confidence, x, y, width, height):
+    def drawPrediction(self, classNumber, confidence, x, y, width, height):
         # add bounding box
         # convert into vertices of box
         left = x
@@ -150,7 +150,7 @@ class ObjectRecog(object):
 
         cv.rectangle(self.frame, (left, top), (right, bottom), (255, 255, 0), 3)
         label = '%.2f' % confidence
-        label = '%s: %s' % (classes[classID], label) 
+        label = '%s: %s' % (classes[classNumber], label) 
 
         textSize, bottomLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 1, 1)
         labelTop = max(textSize[1], top)
@@ -164,7 +164,7 @@ class ObjectRecog(object):
 
         # verify if this object has been recorded in the past
         trackColor = (0, 0, 0)
-        currentObject = recorded_object(classID, trackX, trackY, trackWidth, trackHeight)
+        currentObject = recorded_object(classNumber, trackX, trackY, trackWidth, trackHeight)
         index = self.Tracker.check_object(currentObject)
         if(index == -1):
             # new object detected
@@ -188,7 +188,7 @@ class ObjectRecog(object):
     @outs outputs of the neural network"""
     def nonmaxSurpression(self, outputs):
         # remove low confidence boxes
-        classIDs = []
+        classNumbers = []
         confidenceSet = []
         bounds = []
         winHeight = self.frame.shape[0]
@@ -198,13 +198,13 @@ class ObjectRecog(object):
         for out in outputs:
             for detectedObject in out:
                 scoreSet = detectedObject[5:]
-                classID = np.argmax(scoreSet) # get the most likely type of the detection
-                confidence = scoreSet[classID] # get the highest confidence
+                classNumber = np.argmax(scoreSet) # get the most likely type of the detection
+                confidence = scoreSet[classNumber] # get the highest confidence
 
                 # only add detection if it passes likelihood threshold 
-                if(confidence > confThreshold):
+                if(confidence > confidenceThreshold):
                     confidenceSet.append(float(confidence))
-                    classIDs.append(classID)
+                    classNumbers.append(classNumber)
                     # get bounds
                     (centerX, centerY, boxWidth, boxHeight) = [int(detectedObject[0]*winWidth), int(detectedObject[1]*winHeight), 
                         int(detectedObject[2]*winWidth), int(detectedObject[3]*winHeight)]
@@ -213,12 +213,12 @@ class ObjectRecog(object):
                     bounds.append([left, top, boxWidth, boxHeight])
 
         # perform non maxim supression because YOLOv3 does not include it by default
-        indices = cv.dnn.NMSBoxes(bounds, confidenceSet, confThreshold, nmsThreshold)
+        indices = cv.dnn.NMSBoxes(bounds, confidenceSet, confidenceThreshold, nmsThreshold)
 
         # draw boxes
         if(len(indices) > 0):
             for i in indices.flatten():
-                self.drawPrediction(classIDs[i], confidenceSet[i], bounds[i][0], bounds[i][1], bounds[i][2], bounds[i][3])
+                self.drawPrediction(classNumbers[i], confidenceSet[i], bounds[i][0], bounds[i][1], bounds[i][2], bounds[i][3])
 
 
 """Begin the process of looking for ROS inputs"""
